@@ -24,7 +24,6 @@
 
 import { SpinalGraphService, SpinalNodeRef } from "spinal-env-viewer-graph-service";
 import { SpinalNode } from "spinal-model-graph"
-import { spinalCore, Process } from "spinal-core-connectorjs_type";
 import * as constants from "./constants"
 import { NetworkService, InputDataEndpoint, InputDataEndpointDataType, InputDataEndpointType, SpinalBmsEndpoint } from "spinal-model-bmsnetwork"
 import { SpinalAttribute } from "spinal-models-documentation/declarations";
@@ -51,7 +50,7 @@ export class Utils {
 
     
      
-    public async getBlinds(contextName): Promise<PosInfoStore[]> {
+    /*public async getBlinds(contextName): Promise<PosInfoStore[]> {
 
         const context = await SpinalGraphService.getContext(contextName);
         if (context === undefined) {
@@ -71,7 +70,7 @@ export class Utils {
             }
         }
         return blinds;
-    }
+    }*/
    
 
     public async setCommandControlPoint(workposition: SpinalNode<any>) {
@@ -105,9 +104,9 @@ export class Utils {
 
 
     // function to get stores linked to position 
-    public async getStoreForPosition(workposition: SpinalNode<any>): Promise<PosInfoStore[]> {
+    public async getEndpointPosition(workposition: SpinalNode<any>): Promise<SpinalNode<any>[]> {
 
-        const result: Array<{ canal: SpinalNode<any>; Motstore: SpinalNode<any>; endpoint: SpinalNode<any> }> = [];
+        const result :SpinalNode<any>[] = [];
         const bimObjects = await workposition.getChildren("hasNetworkTreeBimObject");
         const stores = bimObjects.filter(x => x.info.name.get().includes(this.store_filter));
 
@@ -120,7 +119,8 @@ export class Utils {
                         .find(child => child.info.name.get() === constants.GTBendpoint);
 
                     if (bmsendpoint !== undefined) {
-                        result.push({ canal: canal[0], Motstore: store, endpoint: bmsendpoint });
+                        //check curentValue later
+                        result.push(bmsendpoint);
                     }
                 }
             }
@@ -209,30 +209,36 @@ export class Utils {
 
 
 
-   /* public async BindStoresControlPoint(posList: PositionsDataStore[]) {
-
-        for (const item of posList) {
-            const { position, CP: controlPoint, storeINFO } = item;
-
-            // Vérifier si controlPoint et PosINFO sont valides
-            if (controlPoint != undefined && storeINFO.length > 0) {
-                //console.log("Binding control point:", controlPoint.name.get(), "for position", position.name.get());
-
-                let CPmodifDate = controlPoint.directModificationDate;
-                //console.log("DirectModificationDate for", controlPoint.name.get(), ":", CPmodifDate.get(), [CPmodifDate._server_id]);
-                // Surveiller les modifications pour ce controlPoint
-                // CPmodifDate.bind(async () => {
-                this.processBind.addBind(CPmodifDate, async () => {
-                    console.log("Control Point modified:", controlPoint.name.get());
-                    for (const info of storeINFO) {
-                        const endpValue = (await controlPoint.element.load()).currentValue.get();
-                        await this.updateEndpointValue(info.endpoint, endpValue);
+   public async BindGTBendPoint(position : SpinalNode<any>, endpointList : SpinalNode<any>[]) {
+        for (const endp of endpointList) {
+            
+            
+         
+            if (endp != undefined ) {
+        
+                let endPmodifDate = endp.info.directModificationDate;
+                
+                this.processBind.addBind(endPmodifDate, async () => {
+                    console.log(endPmodifDate.get())
+                    console.log("EndPoint modified:", endp.info.name.get());
+                    // read the endpoint value
+                    const GTBelement = await endp.element.load();
+                    const GTBvalue = GTBelement.currentValue.get();
+                    console.log("New endpoint value:", GTBvalue);
+                    const bitArray = await this.gtbReadValue(GTBvalue);
+                    // If one of the bits 6, 7, or 8 is set to 1, update the control point
+                    if (bitArray.reduce((a, b) => a + b, 0) > 0) {
+                        // call update control point
+                        await this.setCommandControlPoint(position);
                     }
                 });
-                // }, false);
+               
             }
         }
-
-    }*/
+        setTimeout(() => {
+            this.processBind.started = true;
+        console.log("ProcessBind started")
+        }, 10000);
+    }
 
 }

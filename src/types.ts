@@ -19,8 +19,7 @@ export type PositionsDataStore={
     storeINFO: PosInfoStore[];
 }
 export type PosInfoStore={
-    canal: SpinalNode<any>;
-    Motstore: SpinalNode<any>;
+    Position: SpinalNode<any>;
     endpoint: SpinalNode<any>;
 }
 export type PositionTempData={

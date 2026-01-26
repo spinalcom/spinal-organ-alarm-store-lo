@@ -3,11 +3,12 @@ import { Model, Process } from "spinal-core-connectorjs";
 
 export class ProcessBind extends Process {
     mapCB: { model: Model, callback: Function }[] = [];
+    started: boolean = false;
     constructor() {
-        super([]);
+        super([],false);
     }
 
-    addBind(model, callback) {
+    addBind(model: Model, callback: Function) {
         model.bind(this, false);
         this.mapCB.push({ model, callback });
 
@@ -27,6 +28,7 @@ export class ProcessBind extends Process {
     }
 
     onchange(): void {
+        if (!this.started) return
         console.log("ProcessBind onchange called");
         for (const item of this.mapCB) {
             const { model, callback } = item;

@@ -23,7 +23,7 @@
  */
 
 import { SpinalGraphService, SpinalNode, SpinalNodeRef } from "spinal-env-viewer-graph-service";
-import { spinalCore, FileSystem } from "spinal-core-connectorjs_type";
+import { spinalCore, FileSystem } from "spinal-core-connectorjs";
 import cron = require('node-cron');
 import * as config from "../config";
 import { Utils } from "./utils"
@@ -76,23 +76,31 @@ class SpinalMain {
         if (context === undefined) {
             throw new Error(`Context with name ${process.env.HarwareContext} not found.`);
         }
-        const floors = (await context.getChildren("hasNetworkTreeGroup")).filter((e) => e.info.name.get() === "1");
+        const floors = (await context.getChildren("hasNetworkTreeGroup")).find((e) => e.info.name.get() === "1");
 
-        if (floors.length === 0) {
+        if (!floors) {
             throw new Error(`No floors found in context ${process.env.HarwareContext}.`);
         }
-        for (const floor of floors) {
-            const positions = (await floor.getChildren("hasNetworkTreeBimObject")).filter((e) => e.info.name.get() === "FG_MBL_bureau 160x80 n°2 carré [18706725]");
-            if (positions.length === 0) {
-                continue;
-            }
-            for (const position of positions) {
+        
+        const position = (await floors.getChildren("hasNetworkTreeBimObject")).find((e) => e.info.name.get() === "FG_MBL_bureau 160x80 n°2 carré [18706725]");
+        
+        const positionEndpoints = await utils.getEndpointPosition(position);
+
+        console.log("Binding GTB Endpoints...");
+
+        await utils.BindGTBendPoint(position, positionEndpoints);
+     
+
+
+            /* for debugging
+           for (const position of positions) {
 
                 //const blinds: PosInfoStore[] = [];
 
                 const positionBlinds = await utils.getStoreForPosition(position);
-                for (const blind of positionBlinds) {
+                 
 
+                for (const blind of positionBlinds) {
                     const GTBelement = await blind.endpoint.element.load();
                     if (!GTBelement) continue;
                     const GTBvalue = GTBelement.currentValue.get();
@@ -110,8 +118,9 @@ class SpinalMain {
             }
             //const blinds = await utils.getBlinds(process.env.HarwareContext);
             //console.log(`Found ${blinds.length} blinds in context ${process.env.HarwareContext}.`);
+            */
 
-        }
+        
 
     }
 }
