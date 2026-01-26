@@ -1,0 +1,43 @@
+{
+  "name": "spinal-organ-ControlPoint_analysis",
+  "version": "1.0.0",
+  "description": "organ that watchs any changes on controlpoints command and update the concerning enpoints",
+  "main": "index.js",
+  "scripts": {
+    "start": "npm run build && node dist/index.js",
+    "build": "rm -rf dist/ && tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cherifi-93/spinal-organ-ControlPoint_analysis.git"
+  },
+  "keywords": [
+    "commissioning-analytics"
+  ],
+  "author": "Salah-Eddine CHERIFI",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.0.1",
+    "moment": "^2.29.3",
+    "node-cron": "^3.0.1",
+    "typescript": "^4.4.4"
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.38"
+  },
+  "bugs": {
+    "url": "https://github.com/cherifi-93/spinal-organ-ControlPoint_analysis/issues"
+  },
+  "homepage": "https://github.com/cherifi-93/spinal-organ-ControlPoint_analysis#readme",
+  "spinalDependencies": {
+    "spinal-core-connectorjs": "spinal-core-connectorjs",
+    "spinal-core-connectorjs_type": "spinal-core-connectorjs_type",
+    "spinal-env-viewer-graph-service": "Spinal-Graph-Service",
+    "spinal-env-viewer-plugin-documentation": "spinal-env-viewer-plugin-documentation",
+    "spinal-env-viewer-plugin-documentation-service": "spinal-env-viewer-plugin-documentation-service",
+    "spinal-model-bmsnetwork": "spinal-model-bmsnetwork",
+    "spinal-model-graph": "spinal-model-graph",
+    "spinal-model-timeseries": "spinal-model-timeseries"
+  }
+}
