@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cherifi-93/spinal-organ-ControlPoint_analysis.git"
+    "url": "git+https://github.com/spinalcom/spinal-organ-ControlPoint-analysis.git"
   },
   "keywords": [
     "commissioning-analytics"
@@ -27,9 +27,9 @@
     "@types/node": "^17.0.38"
   },
   "bugs": {
-    "url": "https://github.com/cherifi-93/spinal-organ-ControlPoint_analysis/issues"
+    "url": "https://github.com/spinalcom/spinal-organ-ControlPoint-analysis/issues"
   },
-  "homepage": "https://github.com/cherifi-93/spinal-organ-ControlPoint_analysis#readme",
+  "homepage": "https://github.com/spinalcom/spinal-organ-ControlPoint-analysis.git#readme",
   "spinalDependencies": {
     "spinal-core-connectorjs": "spinal-core-connectorjs",
     "spinal-core-connectorjs_type": "spinal-core-connectorjs_type",

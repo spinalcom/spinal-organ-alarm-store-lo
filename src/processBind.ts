@@ -9,6 +9,7 @@ export class ProcessBind extends Process {
     }
 
     addBind(model: Model, callback: Function) {
+        
         model.bind(this, false);
         this.mapCB.push({ model, callback });
 
@@ -28,11 +29,17 @@ export class ProcessBind extends Process {
     }
 
     onchange(): void {
-        if (!this.started) return
+        //if (!this.started) return
         console.log("ProcessBind onchange called");
+        // for (const item of this.mapCB) {
+        //     console.log("Model state: ", item.model._server_id);
+        // }
+        // console.log(" ------- ");
         for (const item of this.mapCB) {
+            //console.log("in onchange loop");
             const { model, callback } = item;
             if (model.has_been_directly_modified()) {
+                console.log("Model directly modified, calling callback");
                 callback();
             }
         }

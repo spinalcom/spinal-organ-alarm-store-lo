@@ -28,7 +28,8 @@ import cron = require('node-cron');
 import * as config from "../config";
 import { Utils } from "./utils"
 import * as constants from "./constants"
-import { PositionData, PosInfoStore } from "./types";
+import {PosInfoStore } from "./types";
+import { get } from "http";
 const utils = new Utils();
 
 
@@ -36,7 +37,6 @@ const utils = new Utils();
 class SpinalMain {
     connect: spinal.FileSystem;
 
-    private CP_to_PositionsToData = new Map<string, PositionData>();
 
     constructor() {
         const url = `${config.hubProtocol}://${config.userId}:${config.userPassword}@${config.hubHost}:${config.hubPort}/`;
@@ -76,51 +76,39 @@ class SpinalMain {
         if (context === undefined) {
             throw new Error(`Context with name ${process.env.HarwareContext} not found.`);
         }
-        const floors = (await context.getChildren("hasNetworkTreeGroup")).find((e) => e.info.name.get() === "1");
+        const floors = await context.getChildren("hasNetworkTreeGroup")
 
-        if (!floors) {
+        if (floors.length === 0) {
             throw new Error(`No floors found in context ${process.env.HarwareContext}.`);
         }
-        
-        const position = (await floors.getChildren("hasNetworkTreeBimObject")).find((e) => e.info.name.get() === "FG_MBL_bureau 160x80 n°2 carré [18706725]");
-        
-        const positionEndpoints = await utils.getEndpointPosition(position);
+        const positions : SpinalNode[] = []
+        for (const floor of floors) {
+            const floorPositions = await floor.getChildren("hasNetworkTreeBimObject");
+            positions.push(...floorPositions);
+        }
+        console.log(`Found ${positions.length} positions in context ${process.env.HarwareContext}.`);
 
-        console.log("Binding GTB Endpoints...");
-
-        await utils.BindGTBendPoint(position, positionEndpoints);
-     
-
-
-            /* for debugging
-           for (const position of positions) {
-
-                //const blinds: PosInfoStore[] = [];
-
-                const positionBlinds = await utils.getStoreForPosition(position);
-                 
-
-                for (const blind of positionBlinds) {
-                    const GTBelement = await blind.endpoint.element.load();
-                    if (!GTBelement) continue;
-                    const GTBvalue = GTBelement.currentValue.get();
-                    if (!GTBvalue) continue;
-                    console.log(GTBvalue)
-                    const bitArray = await utils.gtbReadValue(GTBvalue)
+        const AllEndpoints : PosInfoStore[] = [];
+        for (const position of positions) {
+            const posData = await utils.getInfoPosition(position);
+            for (const info of posData) {
+                const check = await utils.checkEndpointValue(info.endpoint);
+                console.log(`Check endpoint ${info.endpoint.info.name.get()} for position ${position.info.name.get()}: ${check}`);
+                if (check) {
                     
-                    //if (bitArray.reduce((a, b) => a + b, 0) > 0) {
-                        //call update control point
-                         await utils.setCommandControlPoint(position);
-                        
-                    //}
+                        info.CPelement.currentValue.set(true);
+                        console.log(`Set command Control Point for position ${position.info.name.get()}`);
+                        break;
+                    
                     
                 }
             }
-            //const blinds = await utils.getBlinds(process.env.HarwareContext);
-            //console.log(`Found ${blinds.length} blinds in context ${process.env.HarwareContext}.`);
-            */
-
+            AllEndpoints.push(...posData);
+        }
         
+        await utils.BindGTBendPoint(AllEndpoints);
+        console.log ("Binding done");
+
 
     }
 }
@@ -142,5 +130,4 @@ async function Main() {
 }
 
 
-// Call main function
 Main()
