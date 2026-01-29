@@ -22,7 +22,7 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 
-import { SpinalGraphService, SpinalNode, SpinalNodeRef } from "spinal-env-viewer-graph-service";
+import { SpinalGraphService, SpinalNode} from "spinal-env-viewer-graph-service";
 import { spinalCore, FileSystem } from "spinal-core-connectorjs";
 import cron = require('node-cron');
 import * as config from "../config";
@@ -30,6 +30,7 @@ import { Utils } from "./utils"
 import * as constants from "./constants"
 import {PosInfoStore } from "./types";
 import { get } from "http";
+import { info } from "console";
 const utils = new Utils();
 
 
@@ -65,10 +66,10 @@ class SpinalMain {
 
 
 
-    /**
+    /** for debugging purposes
      * The main function of the class
      */
-    public async MainJob() {
+    /*public async MainJob() {
 
 
         const context = await SpinalGraphService.getContext(process.env.HarwareContext);
@@ -98,9 +99,7 @@ class SpinalMain {
                     
                         info.CPelement.currentValue.set(true);
                         console.log(`Set command Control Point for position ${position.info.name.get()}`);
-                        break;
-                    
-                    
+                        break;                                       
                 }
             }
             AllEndpoints.push(...posData);
@@ -108,10 +107,91 @@ class SpinalMain {
         
         await utils.BindGTBendPoint(AllEndpoints);
         console.log ("Binding done");
+    }*/
 
+    public async asyncPool<T>(
+        poolLimit: number,
+        array: T[],
+        iteratorFn: (item: T) => Promise<void>
+    ){
+        const ret: Promise<void>[] = [];
+        const executing: Promise<void>[] = [];
 
+        for (const item of array) {
+            const p = Promise.resolve().then(() => iteratorFn(item));
+            ret.push(p);
+
+            if (poolLimit <= array.length) {
+                const e = p.then(() => executing.splice(executing.indexOf(e), 1));
+                executing.push(e);
+                if (executing.length >= poolLimit) {
+                    await Promise.race(executing);
+                }
+            }
+        }
+        return Promise.all(ret);
     }
+
+    public async MainJob() {
+
+        const context = await SpinalGraphService.getContext(process.env.HarwareContext);
+        if (!context) {
+            throw new Error(`Context with name ${process.env.HarwareContext} not found.`);
+        }
+
+        //const floors = await context.getChildren("hasNetworkTreeGroup")
+        
+        
+        const floors = (await context.getChildren("hasNetworkTreeGroup")).filter((node) => node.info.name.get() === "6");
+        if (floors.length === 0) {
+            throw new Error(`No floors found in context ${process.env.HarwareContext}.`);
+        }
+        const positionsArrays = await Promise.all(
+            floors.map(floor =>
+                floor.getChildren("hasNetworkTreeBimObject")
+            )
+        );
+        const positions: SpinalNode[] = (positionsArrays.flat()).filter((node) => node.info.name.get() === "FG_MBL_bureau 160x80 n°2 carré [18705238]");
+
+        console.log(`Found ${positions.length} positions.`);
+
+        const AllEndpoints: PosInfoStore[] = [];
+
+        await this.asyncPool(15, positions, async (position) => {
+            const posData = await utils.getInfoPosition(position);
+            try {
+                const CP = posData[0].CPelement;
+                let doubleCheck = false;
+                for (const info of posData) {
+                    const check = await utils.checkEndpointValue(info.endpoint);
+                    console.log(`Check endpoint ${info.endpoint.info.name.get()} for position ${position.info.name.get()}: ${check}`);
+
+                    if (check) {
+                        info.CPelement.currentValue.set(true);
+                        console.log(`Set CP for ${position.info.name.get()} to true`);
+                        doubleCheck = true;
+                        break;
+                    }
+                }
+                if (!doubleCheck){
+                    CP.currentValue.set(false);
+                    console.log(`Set command Control Point for position ${position.info.name.get()} to false`);
+                }
+
+                AllEndpoints.push(...posData);
+            } catch (error) {
+                console.error("Error processing position ", position.info.name.get(), error);
+            }
+
+
+        });
+
+        await utils.BindGTBendPoint(AllEndpoints);
+        console.log("Binding done");
+    }
+
 }
+
 async function Main() {
     try {
         console.log('Organ Start');

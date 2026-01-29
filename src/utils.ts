@@ -99,7 +99,7 @@ export class Utils {
 
 
     // function to get stores linked to position 
-    public async getInfoPosition(workposition: SpinalNode<any>): Promise<PosInfoStore[]> {
+    public async getInfoPosition(workposition: SpinalNode<any>): Promise<PosInfoStore[] | []> {
 
         const result: PosInfoStore[] = [];
         const element = await this.getCommandControlPoint(workposition);
@@ -138,13 +138,13 @@ export class Utils {
 
         // Récupérer les 2 derniers octets
         const indicatorsHex = endpointValue.slice(-4);
-        console.log("Indicateurs hex :", indicatorsHex);
+        //console.log("Indicateurs hex :", indicatorsHex);
 
         // Convertir en nombre puis en binaire sur 16 bits
         const indicatorsBin = parseInt(indicatorsHex, 16)
             .toString(2)
             .padStart(16);
-        console.log("Indicateurs bin :", indicatorsBin);
+        //console.log("Indicateurs bin :", indicatorsBin);
 
         // Transformer la string binaire en tableau de bits
         // bitArray[0] = LSB, bitArray[15] = MSB
@@ -162,10 +162,21 @@ export class Utils {
     }
 
 
+    public async checkAllEndpoints(endpList: PosInfoStore[]): Promise<boolean> {
+        let result = false;
+        for (const endpInfo of endpList) {
+            const { Position: position, endpoint: endp } = endpInfo;
+            const check = await this.checkEndpointValue(endp);
+            if(check){
+                result = true;
+                break;
+            }
+        }
+        return result;  
 
+    }
 
     public async BindGTBendPoint(endpList: PosInfoStore[]) {
-
         for (const endpInfo of endpList) {
             console.log("Binding endpoint for position:", endpInfo.Position.info.name.get());
             const { Position: position, endpoint: endp , CPelement: element} = endpInfo;
@@ -173,18 +184,27 @@ export class Utils {
             // } at position:[${
             //     position._server_id
             // }] ${position.info.name.get()}, directid : ${endp.info.directModificationDate._server_id}`);
-            let endPmodifDate = endp.info.directModificationDate;
-            this.processBind.addBind(endPmodifDate, async () => {
-                console.log(endPmodifDate.get())
+            //let endPmodifDate = endp.info.directModificationDate;
+            let endpElement = await endp.element.load();
+            let Value = endpElement.currentValue;
+            this.processBind.addBind(Value, async () => {
+                //console.log(endPmodifDate.get())
                 console.log("EndPoint modified:", endp.info.name.get() , " at position:", position.info.name.get());
                 // read the endpoint value
                 const check = await this.checkEndpointValue(endp);
                 if (check) {
-                    //const element= await this.getCommandControlPoint(position);
                         element.currentValue.set(true);
-                        console.log(`Set command Control Point for position ${position.info.name.get()}`);
+                        console.log(`Set command Control Point for position ${position.info.name.get()} to true`);
 
                     
+                }else {
+                    //element.currentValue.set(false);
+                    //console.log(`Set command Control Point for position ${position.info.name.get()} to false`);
+                    if(!await this.checkAllEndpoints(endpList))
+                        {
+                            element.currentValue.set(false);
+                            console.log(`Set command Control Point for position ${position.info.name.get()} to false`);
+                        }
                 }
 
             });
@@ -192,7 +212,7 @@ export class Utils {
             /*setTimeout(() => {
                 this.processBind.started = true;
             console.log("ProcessBind started")
-            }, 10000);*/
+            }, 3000);*/
         }
     }
 
@@ -200,14 +220,21 @@ export class Utils {
         const GTBelement = await endpoint.element.load();
         const GTBvalue = GTBelement.currentValue?.get();
         if (GTBvalue) {
-            //console.log("New endpoint value:", GTBvalue);
-            const bitArray = await this.gtbReadValue(GTBvalue);
-            // If one of the bits 6, 7, or 8 is set to 1, update the control point
-            if (bitArray.reduce((a, b) => a + b, 0) > 0) {
-                // call update control point
-                return true;
-                //await this.setCommandControlPoint(position);
+            try {
+                //console.log("New endpoint value:", GTBvalue);
+                const bitArray = await this.gtbReadValue(GTBvalue);
+                // If one of the bits 6, 7, or 8 is set to 1, update the control point
+                if (bitArray.reduce((a, b) => a + b, 0) > 0) {
+                    // call update control point
+                    return true;
+                    //await this.setCommandControlPoint(position);
+                }
+
+            } catch (error) {
+                console.error("Error reading GTB value:", error);
+
             }
+
         }
         return false;
     }
