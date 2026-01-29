@@ -1,5 +1,5 @@
 {
-  "name": "spinal-organ-ControlPoint_analysis",
+  "name": "spinal-organ-alarm-store-lo",
   "version": "1.0.0",
   "description": "organ that watchs any changes on controlpoints command and update the concerning enpoints",
   "main": "index.js",
@@ -10,12 +10,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/spinalcom/spinal-organ-ControlPoint-analysis.git"
+    "url": "git+https://github.com/spinalcom/spinal-organ-alarm-store-lo.git"
   },
-  "keywords": [
-    "commissioning-analytics"
-  ],
-  "author": "Salah-Eddine CHERIFI",
+  
   "license": "ISC",
   "dependencies": {
     "dotenv": "^16.0.1",
@@ -27,9 +24,9 @@
     "@types/node": "^17.0.38"
   },
   "bugs": {
-    "url": "https://github.com/spinalcom/spinal-organ-ControlPoint-analysis/issues"
+    "url": "https://github.com/spinalcom/spinal-organ-alarm-store-lo/issues"
   },
-  "homepage": "https://github.com/spinalcom/spinal-organ-ControlPoint-analysis.git#readme",
+  "homepage": "https://github.com/spinalcom/spinal-organ-alarm-store-lo.git#readme",
   "spinalDependencies": {
     "spinal-core-connectorjs": "spinal-core-connectorjs",
     "spinal-core-connectorjs_type": "spinal-core-connectorjs_type",

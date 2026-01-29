@@ -155,9 +155,9 @@ export class Utils {
         return result;
     }
 
-    public async gtbReadValue(endpointValue: string): Promise<number[]> {
+    public async gtbReadValue(position : SpinalNode<any>, endpointValue: string): Promise<number[]> {
         if (endpointValue.length < 8) {
-            throw new Error("La trame doit contenir au moins 4 octets (8 caractères hex).");
+            throw new Error("position " + position.info.name.get() + ", La trame doit contenir au moins 4 octets (8 caractères hex).");
         }
 
         // Récupérer les 2 derniers octets
@@ -190,7 +190,7 @@ export class Utils {
         let result = false;
         for (const endpInfo of endpList) {
             const { Position: position, endpoint: endp } = endpInfo;
-            const check = await this.checkEndpointValue(endp);
+            const check = await this.checkEndpointValue(position,endp);
             if(check){
                 result = true;
                 break;
@@ -199,10 +199,10 @@ export class Utils {
         return result;  
 
     }
-        public async checkAllEndpoints(endpList: SpinalNode<any>[]): Promise<boolean> {
+        public async checkAllEndpoints(position: SpinalNode<any>, endpList: SpinalNode<any>[]): Promise<boolean> {
         let result = false;
         for (const endp of endpList) {
-            const check = await this.checkEndpointValue(endp);
+            const check = await this.checkEndpointValue(position, endp);
             if(check){
                 result = true;
                 break;
@@ -216,26 +216,20 @@ export class Utils {
         for (const endpInfo of endpList) {
             console.log("Binding endpoint for position:", endpInfo.Position.info.name.get());
             const { Position: position, endpoint: endp , CPelement: element} = endpInfo;
-            // console.log(`Binding endpoint: [${endp.info._server_id}] ${endp.info.name.get()
-            // } at position:[${
-            //     position._server_id
-            // }] ${position.info.name.get()}, directid : ${endp.info.directModificationDate._server_id}`);
-            //let endPmodifDate = endp.info.directModificationDate;
+     
             let endpElement = await endp.element.load();
             let Value = endpElement.currentValue;
             this.processBind.addBind(Value, async () => {
-                //console.log(endPmodifDate.get())
                 console.log("EndPoint modified:", endp.info.name.get() , " at position:", position.info.name.get());
                 // read the endpoint value
-                const check = await this.checkEndpointValue(endp);
+                const check = await this.checkEndpointValue(position, endp);
                 if (check) {
                         element.currentValue.set(true);
                         console.log(`Set command Control Point for position ${position.info.name.get()} to true`);
-                        //doubleCheck = true;
                     
                 }else {
                     const AllEndpoints = await this.getEndPointsForPosition(position);
-                    let doubleCheck = await this.checkAllEndpoints(AllEndpoints);
+                    let doubleCheck = await this.checkAllEndpoints(position,AllEndpoints);
                     if(!doubleCheck){
                                        
                           element.currentValue.set(false);
@@ -256,13 +250,12 @@ export class Utils {
         }
     }
 
-    async checkEndpointValue(endpoint: SpinalNode<any>,): Promise<boolean> {
+    async checkEndpointValue(position: SpinalNode<any>, endpoint: SpinalNode<any>,): Promise<boolean> {
         const GTBelement = await endpoint.element.load();
         const GTBvalue = GTBelement.currentValue?.get();
         if (GTBvalue) {
             try {
-                //console.log("New endpoint value:", GTBvalue);
-                const bitArray = await this.gtbReadValue(GTBvalue);
+                const bitArray = await this.gtbReadValue(position,GTBvalue);
                 // If one of the bits 6, 7, or 8 is set to 1, update the control point
                 if (bitArray.reduce((a, b) => a + b, 0) > 0) {
                     // call update control point
@@ -271,7 +264,7 @@ export class Utils {
                 }
 
             } catch (error) {
-                console.error("Error reading GTB value:", error);
+                console.error("Error reading GTB value for position", position.info.name.get(), ":", error);
 
             }
 

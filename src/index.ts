@@ -29,8 +29,6 @@ import * as config from "../config";
 import { Utils } from "./utils"
 import * as constants from "./constants"
 import {PosInfoStore } from "./types";
-import { get } from "http";
-import { info } from "console";
 const utils = new Utils();
 
 
@@ -142,7 +140,6 @@ class SpinalMain {
         const floors = await context.getChildren("hasNetworkTreeGroup")
         
         
-        //const floors = (await context.getChildren("hasNetworkTreeGroup")).filter((node) => node.info.name.get() === "6");
         if (floors.length === 0) {
             throw new Error(`No floors found in context ${process.env.HarwareContext}.`);
         }
@@ -152,7 +149,6 @@ class SpinalMain {
             )
         );
         const positions: SpinalNode[] = positionsArrays.flat();
-        //const positions: SpinalNode[] = (positionsArrays.flat()).filter((node) =>node.info.name.get() === "FG_MBL_bureau 160x80 n°2 carré [18705238]" || node.info.name.get() === "FG_MBL_bureau 160x80 n°2 carré [18705237]" || node.info.name.get() === "FG_MBL_bureau 160x80 n°2 carré [18705236]");
 
 
         console.log(`Found ${positions.length} positions.`);
@@ -165,7 +161,7 @@ class SpinalMain {
                 const CP = posData[0].CPelement;
                 let doubleCheck = false;
                 for (const info of posData) {
-                    const check = await utils.checkEndpointValue(info.endpoint);
+                    const check = await utils.checkEndpointValue(position, info.endpoint);
                     console.log(`Check endpoint ${info.endpoint.info.name.get()} for position ${position.info.name.get()}: ${check}`);
 
                     if (check) {
