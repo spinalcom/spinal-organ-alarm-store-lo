@@ -131,6 +131,30 @@ export class Utils {
         return result;
     }
 
+      public async getEndPointsForPosition(workposition: SpinalNode<any>): Promise<SpinalNode[]> {
+
+        const result: SpinalNode[] = [];        
+            const bimObjects = await workposition.getChildren("hasNetworkTreeBimObject");
+            const stores = bimObjects.filter(x => x.info.name.get().includes(this.store_filter));
+
+            if (stores.length !== 0) {
+                for (const store of stores) {
+                    const canal = await store.getChildren("hasBmsEndpoint");
+                    if (canal.length !== 0) {
+                        const bmsendpoint = (await canal[0].getChildren("hasBmsEndpoint"))
+                            .find(child => child.info.name.get() === constants.GTBendpoint);
+
+                        if (bmsendpoint !== undefined) {
+                            //check curentValue later
+                            result.push(bmsendpoint);
+                        }
+                    }
+                }
+            }
+        
+        return result;
+    }
+
     public async gtbReadValue(endpointValue: string): Promise<number[]> {
         if (endpointValue.length < 8) {
             throw new Error("La trame doit contenir au moins 4 octets (8 caractères hex).");
@@ -162,10 +186,22 @@ export class Utils {
     }
 
 
-    public async checkAllEndpoints(endpList: PosInfoStore[]): Promise<boolean> {
+    public async checkAllPosInfo(endpList: PosInfoStore[]): Promise<boolean> {
         let result = false;
         for (const endpInfo of endpList) {
             const { Position: position, endpoint: endp } = endpInfo;
+            const check = await this.checkEndpointValue(endp);
+            if(check){
+                result = true;
+                break;
+            }
+        }
+        return result;  
+
+    }
+        public async checkAllEndpoints(endpList: SpinalNode<any>[]): Promise<boolean> {
+        let result = false;
+        for (const endp of endpList) {
             const check = await this.checkEndpointValue(endp);
             if(check){
                 result = true;
@@ -195,17 +231,21 @@ export class Utils {
                 if (check) {
                         element.currentValue.set(true);
                         console.log(`Set command Control Point for position ${position.info.name.get()} to true`);
-
+                        //doubleCheck = true;
                     
                 }else {
-                    //element.currentValue.set(false);
-                    //console.log(`Set command Control Point for position ${position.info.name.get()} to false`);
-                    if(!await this.checkAllEndpoints(endpList))
-                        {
-                            element.currentValue.set(false);
+                    const AllEndpoints = await this.getEndPointsForPosition(position);
+                    let doubleCheck = await this.checkAllEndpoints(AllEndpoints);
+                    if(!doubleCheck){
+                                       
+                          element.currentValue.set(false);
                             console.log(`Set command Control Point for position ${position.info.name.get()} to false`);
                         }
+
+
                 }
+                   
+                
 
             });
 

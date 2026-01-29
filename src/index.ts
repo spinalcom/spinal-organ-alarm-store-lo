@@ -139,10 +139,10 @@ class SpinalMain {
             throw new Error(`Context with name ${process.env.HarwareContext} not found.`);
         }
 
-        //const floors = await context.getChildren("hasNetworkTreeGroup")
+        const floors = await context.getChildren("hasNetworkTreeGroup")
         
         
-        const floors = (await context.getChildren("hasNetworkTreeGroup")).filter((node) => node.info.name.get() === "6");
+        //const floors = (await context.getChildren("hasNetworkTreeGroup")).filter((node) => node.info.name.get() === "6");
         if (floors.length === 0) {
             throw new Error(`No floors found in context ${process.env.HarwareContext}.`);
         }
@@ -151,7 +151,9 @@ class SpinalMain {
                 floor.getChildren("hasNetworkTreeBimObject")
             )
         );
-        const positions: SpinalNode[] = (positionsArrays.flat()).filter((node) => node.info.name.get() === "FG_MBL_bureau 160x80 n°2 carré [18705238]");
+        const positions: SpinalNode[] = positionsArrays.flat();
+        //const positions: SpinalNode[] = (positionsArrays.flat()).filter((node) =>node.info.name.get() === "FG_MBL_bureau 160x80 n°2 carré [18705238]" || node.info.name.get() === "FG_MBL_bureau 160x80 n°2 carré [18705237]" || node.info.name.get() === "FG_MBL_bureau 160x80 n°2 carré [18705236]");
+
 
         console.log(`Found ${positions.length} positions.`);
 
