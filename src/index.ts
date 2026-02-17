@@ -226,7 +226,7 @@ class SpinalMain {
     }
 
     public async MainJob() {
-        //await this.OpenSpace_alarm();
+        await this.OpenSpace_alarm();
         await this.Room_alarm();
     }
 
