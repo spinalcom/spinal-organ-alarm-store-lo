@@ -25,7 +25,7 @@
 import { SpinalGraphService, SpinalNodeRef } from "spinal-env-viewer-graph-service";
 import { SpinalNode } from "spinal-model-graph"
 import * as constants from "./constants"
-import {PosInfoStore} from "./types";
+import {InfoStore} from "./types";
 import { ProcessBind } from "./processBind";
 
 
@@ -55,7 +55,6 @@ export class Utils {
 
                 if (allBmsEndpoints.length > 0) {
                     for (const bmsEndPoint of allBmsEndpoints) {
-                        // Check if the BMS endpoint matches the criteria
                         if (bmsEndPoint.info.name.get() === this.controlPointName) {
                             const nodeElement = await bmsEndPoint.element.load();
                             if (!nodeElement) continue;
@@ -99,12 +98,12 @@ export class Utils {
 
 
     // function to get stores linked to position 
-    public async getInfoPosition(workposition: SpinalNode<any>): Promise<PosInfoStore[] | []> {
+    public async getInfo(ParentNode: SpinalNode<any>,ParentToChildRelation: string): Promise<InfoStore[] | []> {
 
-        const result: PosInfoStore[] = [];
-        const element = await this.getCommandControlPoint(workposition);
+        const result: InfoStore[] = [];
+        const element = await this.getCommandControlPoint(ParentNode);
         if (element !== undefined) {
-            const bimObjects = await workposition.getChildren("hasNetworkTreeBimObject");
+            const bimObjects = await ParentNode.getChildren(ParentToChildRelation);
             const stores = bimObjects.filter(x => x.info.name.get().includes(this.store_filter));
 
             if (stores.length !== 0) {
@@ -118,7 +117,7 @@ export class Utils {
                         if (bmsendpoint !== undefined) {
                             //check curentValue later
                             result.push({
-                                Position: workposition,
+                                Parent: ParentNode,
                                 endpoint: bmsendpoint,
                                 CPelement: element
                             });
@@ -131,10 +130,10 @@ export class Utils {
         return result;
     }
 
-      public async getEndPointsForPosition(workposition: SpinalNode<any>): Promise<SpinalNode[]> {
+      public async getEndPoints(ParentNode: SpinalNode<any>, ParentToChildRelation: string): Promise<SpinalNode[]> {
 
         const result: SpinalNode[] = [];        
-            const bimObjects = await workposition.getChildren("hasNetworkTreeBimObject");
+            const bimObjects = await ParentNode.getChildren(ParentToChildRelation);
             const stores = bimObjects.filter(x => x.info.name.get().includes(this.store_filter));
 
             if (stores.length !== 0) {
@@ -155,9 +154,9 @@ export class Utils {
         return result;
     }
 
-    public async gtbReadValue(position : SpinalNode<any>, endpointValue: string): Promise<number[]> {
+    public async gtbReadValue(ParentNode : SpinalNode<any>, endpointValue: string): Promise<number[]> {
         if (endpointValue.length < 8) {
-            throw new Error("position " + position.info.name.get() + ", La trame doit contenir au moins 4 octets (8 caractères hex).");
+            throw new Error("position " + ParentNode.info.name.get() + ", La trame doit contenir au moins 4 octets (8 caractères hex).");
         }
 
         // Récupérer les 2 derniers octets
@@ -186,11 +185,11 @@ export class Utils {
     }
 
 
-    public async checkAllPosInfo(endpList: PosInfoStore[]): Promise<boolean> {
+    public async checkAllPosInfo(endpList: InfoStore[]): Promise<boolean> {
         let result = false;
         for (const endpInfo of endpList) {
-            const { Position: position, endpoint: endp } = endpInfo;
-            const check = await this.checkEndpointValue(position,endp);
+            const { Parent: ParentNode, endpoint: endp } = endpInfo;
+            const check = await this.checkEndpointValue(ParentNode,endp);
             if(check){
                 result = true;
                 break;
@@ -199,10 +198,10 @@ export class Utils {
         return result;  
 
     }
-        public async checkAllEndpoints(position: SpinalNode<any>, endpList: SpinalNode<any>[]): Promise<boolean> {
+        public async checkAllEndpoints(ParentNode: SpinalNode<any>, endpList: SpinalNode<any>[]): Promise<boolean> {
         let result = false;
         for (const endp of endpList) {
-            const check = await this.checkEndpointValue(position, endp);
+            const check = await this.checkEndpointValue(ParentNode, endp);
             if(check){
                 result = true;
                 break;
@@ -212,28 +211,28 @@ export class Utils {
 
     }
 
-    public async BindGTBendPoint(endpList: PosInfoStore[]) {
+    public async BindGTBendPoint(endpList: InfoStore[]) {
         for (const endpInfo of endpList) {
-            console.log("Binding endpoint for position:", endpInfo.Position.info.name.get());
-            const { Position: position, endpoint: endp , CPelement: element} = endpInfo;
+            console.log("Binding endpoint for :", endpInfo.Parent.info.name.get());
+            const { Parent: ParentNode, endpoint: endp , CPelement: element} = endpInfo;
      
             let endpElement = await endp.element.load();
             let Value = endpElement.currentValue;
             this.processBind.addBind(Value, async () => {
-                console.log("EndPoint modified:", endp.info.name.get() , " at position:", position.info.name.get());
+                console.log("EndPoint modified:", endp.info.name.get() , " at :", ParentNode.info.name.get());
                 // read the endpoint value
-                const check = await this.checkEndpointValue(position, endp);
+                const check = await this.checkEndpointValue(ParentNode, endp);
                 if (check) {
                         element.currentValue.set(true);
-                        console.log(`Set command Control Point for position ${position.info.name.get()} to true`);
+                        console.log(`Set command Control Point for  ${ParentNode.info.name.get()} to true`);
                     
                 }else {
-                    const AllEndpoints = await this.getEndPointsForPosition(position);
-                    let doubleCheck = await this.checkAllEndpoints(position,AllEndpoints);
+                    const AllEndpoints = await this.getEndPoints(ParentNode, "hasNetworkTreeBimObject");
+                    let doubleCheck = await this.checkAllEndpoints(ParentNode,AllEndpoints);
                     if(!doubleCheck){
                                        
                           element.currentValue.set(false);
-                            console.log(`Set command Control Point for position ${position.info.name.get()} to false`);
+                            console.log(`Set command Control Point for ${ParentNode.info.name.get()} to false`);
                         }
 
 
@@ -250,21 +249,20 @@ export class Utils {
         }
     }
 
-    async checkEndpointValue(position: SpinalNode<any>, endpoint: SpinalNode<any>,): Promise<boolean> {
+    async checkEndpointValue(ParentNode: SpinalNode<any>, endpoint: SpinalNode<any>,): Promise<boolean> {
         const GTBelement = await endpoint.element.load();
         const GTBvalue = GTBelement.currentValue?.get();
         if (GTBvalue) {
             try {
-                const bitArray = await this.gtbReadValue(position,GTBvalue);
+                const bitArray = await this.gtbReadValue(ParentNode,GTBvalue);
                 // If one of the bits 6, 7, or 8 is set to 1, update the control point
                 if (bitArray.reduce((a, b) => a + b, 0) > 0) {
                     // call update control point
                     return true;
-                    //await this.setCommandControlPoint(position);
                 }
 
             } catch (error) {
-                console.error("Error reading GTB value for position", position.info.name.get(), ":", error);
+                console.error("Error reading GTB value for position", ParentNode.info.name.get(), ":", error);
 
             }
 

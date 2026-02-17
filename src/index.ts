@@ -23,12 +23,12 @@
  */
 
 import { SpinalGraphService, SpinalNode} from "spinal-env-viewer-graph-service";
-import { spinalCore, FileSystem } from "spinal-core-connectorjs";
+import { spinalCore} from "spinal-core-connectorjs";
 import cron = require('node-cron');
 import * as config from "../config";
 import { Utils } from "./utils"
 import * as constants from "./constants"
-import {PosInfoStore } from "./types";
+import {InfoStore } from "./types";
 const utils = new Utils();
 
 
@@ -130,19 +130,18 @@ class SpinalMain {
         return Promise.all(ret);
     }
 
-    public async MainJob() {
-
+    private async OpenSpace_alarm(): Promise<void> {
         const context = await SpinalGraphService.getContext(process.env.HarwareContext);
         if (!context) {
             throw new Error(`Context with name ${process.env.HarwareContext} not found.`);
         }
 
-        const floors = await context.getChildren("hasNetworkTreeGroup")
-        
+        const floors = await context.getChildren("hasNetworkTreeGroup");
         
         if (floors.length === 0) {
             throw new Error(`No floors found in context ${process.env.HarwareContext}.`);
         }
+        
         const positionsArrays = await Promise.all(
             floors.map(floor =>
                 floor.getChildren("hasNetworkTreeBimObject")
@@ -150,13 +149,12 @@ class SpinalMain {
         );
         const positions: SpinalNode[] = positionsArrays.flat();
 
-
         console.log(`Found ${positions.length} positions.`);
 
-        const AllEndpoints: PosInfoStore[] = [];
+        const AllEndpoints: InfoStore[] = [];
 
         await this.asyncPool(15, positions, async (position) => {
-            const posData = await utils.getInfoPosition(position);
+            const posData = await utils.getInfo(position, "hasNetworkTreeBimObject");
             try {
                 const CP = posData[0].CPelement;
                 let doubleCheck = false;
@@ -171,7 +169,7 @@ class SpinalMain {
                         break;
                     }
                 }
-                if (!doubleCheck){
+                if (!doubleCheck) {
                     CP.currentValue.set(false);
                     console.log(`Set command Control Point for position ${position.info.name.get()} to false`);
                 }
@@ -180,12 +178,56 @@ class SpinalMain {
             } catch (error) {
                 console.error("Error processing position ", position.info.name.get(), error);
             }
-
-
         });
 
         await utils.BindGTBendPoint(AllEndpoints);
-        console.log("Binding done");
+        console.log("Binding done for positions");
+    }
+    private async Room_alarm(): Promise<void> {     
+
+         const context = await SpinalGraphService.getContext(process.env.RoomContext);
+        if (!context) {
+            throw new Error(`Context with name ${process.env.RoomContext} not found.`);
+        }
+         const category = (await context.getChildren("hasCategory")).find(cat => cat.info.name.get() === process.env.RoomCategory);
+        
+        if (!category) {
+            throw new Error(`No category found in context ${process.env.RoomContext}.`);
+        }
+        const groups = await category.getChildren("hasGroup");
+        if(groups.length === 0){
+            throw new Error(`No groups found in category ${process.env.RoomCategory}.`);
+        }
+        const roomsArrays = await Promise.all(
+            groups.map(group =>
+                group.getChildren("groupHasgeographicRoom")
+            )
+        );
+        const rooms: SpinalNode[] = roomsArrays.flat();
+        console.log(`Found ${rooms.length} rooms.`);
+            const AllEndpoints: InfoStore[] = [];  
+            for (const room of rooms) {
+                const roomData = await utils.getInfo(room, "hasBimObject");
+                for (const info of roomData) {
+                    const check = await utils.checkEndpointValue(room, info.endpoint);
+                    console.log(`Check endpoint ${info.endpoint.info.name.get()} for room ${room.info.name.get()}: ${check}`);
+                    if (check) {
+                        info.CPelement.currentValue.set(true);
+                        console.log(`Set CP for ${room.info.name.get()} to true`);
+                    } else {
+                        info.CPelement.currentValue.set(false);
+                        console.log(`Set command Control Point for room ${room.info.name.get()} to false`);
+                    }
+                }
+                AllEndpoints.push(...roomData);
+            }
+            await utils.BindGTBendPoint(AllEndpoints);
+            console.log("Binding done for rooms");
+    }
+
+    public async MainJob() {
+        //await this.OpenSpace_alarm();
+        await this.Room_alarm();
     }
 
 }
