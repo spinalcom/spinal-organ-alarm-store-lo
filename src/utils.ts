@@ -102,6 +102,7 @@ export class Utils {
 
         const result: InfoStore[] = [];
         const element = await this.getCommandControlPoint(ParentNode);
+        
         if (element !== undefined) {
             const bimObjects = await ParentNode.getChildren(ParentToChildRelation);
             const stores = bimObjects.filter(x => x.info.name.get().includes(this.store_filter));
@@ -248,6 +249,43 @@ export class Utils {
             }, 3000);*/
         }
     }
+    public async BindGTBendPointForRoom(endpList: InfoStore[]) {
+        for (const endpInfo of endpList) {
+            console.log("Binding endpoint for :", endpInfo.Parent.info.name.get());
+            const { Parent: ParentNode, endpoint: endp , CPelement: element} = endpInfo;
+     
+            let endpElement = await endp.element.load();
+            let Value = endpElement.currentValue;
+            this.processBind.addBind(Value, async () => {
+                console.log("EndPoint modified:", endp.info.name.get() , " at :", ParentNode.info.name.get());
+                // read the endpoint value
+                const check = await this.checkEndpointValue(ParentNode, endp);
+                if (check) {
+                        element.currentValue.set(true);
+                        console.log(`Set command Control Point for  ${ParentNode.info.name.get()} to true`);
+                    
+                }else {
+                    const AllEndpoints = await this.getEndPoints(ParentNode, "hasBimObject");
+                    let doubleCheck = await this.checkAllEndpoints(ParentNode,AllEndpoints);
+                    if(!doubleCheck){
+                                       
+                          element.currentValue.set(false);
+                            console.log(`Set command Control Point for ${ParentNode.info.name.get()} to false`);
+                        }
+
+
+                }
+                   
+                
+
+            });
+
+            /*setTimeout(() => {
+                this.processBind.started = true;
+            console.log("ProcessBind started")
+            }, 3000);*/
+        }
+    }
 
     async checkEndpointValue(ParentNode: SpinalNode<any>, endpoint: SpinalNode<any>,): Promise<boolean> {
         const GTBelement = await endpoint.element.load();
@@ -255,6 +293,7 @@ export class Utils {
         if (GTBvalue) {
             try {
                 const bitArray = await this.gtbReadValue(ParentNode,GTBvalue);
+                console.log("bitArray ======================================================:", bitArray);
                 // If one of the bits 6, 7, or 8 is set to 1, update the control point
                 if (bitArray.reduce((a, b) => a + b, 0) > 0) {
                     // call update control point
@@ -262,7 +301,7 @@ export class Utils {
                 }
 
             } catch (error) {
-                console.error("Error reading GTB value for position", ParentNode.info.name.get(), ":", error);
+                console.error("Error reading GTB value for ", ParentNode.info.name.get(), ":", error);
 
             }
 

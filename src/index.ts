@@ -204,29 +204,45 @@ class SpinalMain {
             )
         );
         const rooms: SpinalNode[] = roomsArrays.flat();
-        console.log(`Found ${rooms.length} rooms.`);
+        //const testRoom = rooms.filter(room => room.info.name.get() === "BEL-30-R001_4HAGR001-Salon client - moyen");
+        //console.log(`Found ${rooms.length} rooms.`);
             const AllEndpoints: InfoStore[] = [];  
             for (const room of rooms) {
-                const roomData = await utils.getInfo(room, "hasBimObject");
-                for (const info of roomData) {
-                    const check = await utils.checkEndpointValue(room, info.endpoint);
-                    console.log(`Check endpoint ${info.endpoint.info.name.get()} for room ${room.info.name.get()}: ${check}`);
-                    if (check) {
-                        info.CPelement.currentValue.set(true);
-                        console.log(`Set CP for ${room.info.name.get()} to true`);
-                    } else {
-                        info.CPelement.currentValue.set(false);
+                const roomData = await utils.getInfo(room,"hasBimObject");
+               
+                    
+                try {
+                    const CP = roomData[0].CPelement;
+                    let doubleCheck = false;
+                    
+                    for (const info of roomData) {
+                        const check = await utils.checkEndpointValue(room, info.endpoint);
+                        console.log(`Check endpoint ${info.endpoint.info.name.get()} for room ${room.info.name.get()}: ${check}`);
+
+                        if (check) {
+                            info.CPelement.currentValue.set(true);
+                            console.log(`Set CP for ${room.info.name.get()} to true`);
+                            doubleCheck = true;
+                            break;
+                        }
+                    }
+                    if (!doubleCheck) {
+                        CP.currentValue.set(false);
                         console.log(`Set command Control Point for room ${room.info.name.get()} to false`);
                     }
+
+                    AllEndpoints.push(...roomData);
+                } catch (error) {
+                    console.error("Error processing room ", room.info.name.get(), error);
                 }
-                AllEndpoints.push(...roomData);
+            
             }
-            await utils.BindGTBendPoint(AllEndpoints);
+            await utils.BindGTBendPointForRoom(AllEndpoints);
             console.log("Binding done for rooms");
     }
 
     public async MainJob() {
-        await this.OpenSpace_alarm();
+        //await this.OpenSpace_alarm();
         await this.Room_alarm();
     }
 
