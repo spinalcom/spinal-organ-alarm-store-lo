@@ -155,7 +155,10 @@ class SpinalMain {
 
         await this.asyncPool(15, positions, async (position) => {
             const posData = await utils.getInfo(position, "hasNetworkTreeBimObject");
-            try {
+                if (posData.length === 0) {
+                    console.log(`Data is missing for position ${position.info.name.get()} skipping...`);
+                    return;
+                }
                 const CP = posData[0].CPelement;
                 let doubleCheck = false;
                 for (const info of posData) {
@@ -175,9 +178,7 @@ class SpinalMain {
                 }
 
                 AllEndpoints.push(...posData);
-            } catch (error) {
-                console.error("Error processing position ", position.info.name.get(), error);
-            }
+            
         });
 
         await utils.BindGTBendPoint(AllEndpoints);
@@ -204,14 +205,16 @@ class SpinalMain {
             )
         );
         const rooms: SpinalNode[] = roomsArrays.flat();
-        //const testRoom = rooms.filter(room => room.info.name.get() === "BEL-30-R001_4HAGR001-Salon client - moyen");
-        //console.log(`Found ${rooms.length} rooms.`);
+     
+        console.log(`Found ${rooms.length} rooms.`);
             const AllEndpoints: InfoStore[] = [];  
             for (const room of rooms) {
                 const roomData = await utils.getInfo(room,"hasBimObject");
+                if(roomData.length === 0){
+                    console.log(`Data is missing for room ${room.info.name.get()} skipping...`);
+                    continue;
+                }
                
-                    
-                try {
                     const CP = roomData[0].CPelement;
                     let doubleCheck = false;
                     
@@ -232,9 +235,7 @@ class SpinalMain {
                     }
 
                     AllEndpoints.push(...roomData);
-                } catch (error) {
-                    console.error("Error processing room ", room.info.name.get(), error);
-                }
+                
             
             }
             await utils.BindGTBendPointForRoom(AllEndpoints);
@@ -242,7 +243,7 @@ class SpinalMain {
     }
 
     public async MainJob() {
-        //await this.OpenSpace_alarm();
+        await this.OpenSpace_alarm();
         await this.Room_alarm();
     }
 

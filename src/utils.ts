@@ -157,7 +157,8 @@ export class Utils {
 
     public async gtbReadValue(ParentNode : SpinalNode<any>, endpointValue: string): Promise<number[]> {
         if (endpointValue.length < 8) {
-            throw new Error("position " + ParentNode.info.name.get() + ", La trame doit contenir au moins 4 octets (8 caractères hex).");
+            console.error("position " + ParentNode.info.name.get() + ", La trame doit contenir au moins 4 octets (8 caractères hex).");
+            return [0, 0, 0]; // Return default value in case of error
         }
 
         // Récupérer les 2 derniers octets
@@ -167,8 +168,8 @@ export class Utils {
         // Convertir en nombre puis en binaire sur 16 bits
         const indicatorsBin = parseInt(indicatorsHex, 16)
             .toString(2)
-            .padStart(16);
-        //console.log("Indicateurs bin :", indicatorsBin);
+            .padStart(16,"0");
+       //console.log("Indicateurs bin :", indicatorsBin);
 
         // Transformer la string binaire en tableau de bits
         // bitArray[0] = LSB, bitArray[15] = MSB
@@ -235,12 +236,8 @@ export class Utils {
                           element.currentValue.set(false);
                             console.log(`Set command Control Point for ${ParentNode.info.name.get()} to false`);
                         }
-
-
                 }
                    
-                
-
             });
 
             /*setTimeout(() => {
@@ -280,10 +277,7 @@ export class Utils {
 
             });
 
-            /*setTimeout(() => {
-                this.processBind.started = true;
-            console.log("ProcessBind started")
-            }, 3000);*/
+         
         }
     }
 
