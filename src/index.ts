@@ -70,22 +70,22 @@ class SpinalMain {
     /*public async MainJob() {
 
 
-        const context = await SpinalGraphService.getContext(process.env.HarwareContext);
+        const context = await SpinalGraphService.getContext(process.env.HardwareContext);
        
         if (context === undefined) {
-            throw new Error(`Context with name ${process.env.HarwareContext} not found.`);
+            throw new Error(`Context with name ${process.env.HardwareContext} not found.`);
         }
         const floors = await context.getChildren("hasNetworkTreeGroup")
 
         if (floors.length === 0) {
-            throw new Error(`No floors found in context ${process.env.HarwareContext}.`);
+            throw new Error(`No floors found in context ${process.env.HardwareContext}.`);
         }
         const positions : SpinalNode[] = []
         for (const floor of floors) {
             const floorPositions = await floor.getChildren("hasNetworkTreeBimObject");
             positions.push(...floorPositions);
         }
-        console.log(`Found ${positions.length} positions in context ${process.env.HarwareContext}.`);
+        console.log(`Found ${positions.length} positions in context ${process.env.HardwareContext}.`);
 
         const AllEndpoints : PosInfoStore[] = [];
         for (const position of positions) {
@@ -131,15 +131,15 @@ class SpinalMain {
     }
 
     private async OpenSpace_alarm(): Promise<void> {
-        const context = await SpinalGraphService.getContext(process.env.HarwareContext);
+        const context = await SpinalGraphService.getContext(process.env.HardwareContext);
         if (!context) {
-            throw new Error(`Context with name ${process.env.HarwareContext} not found.`);
+            throw new Error(`Context with name ${process.env.HardwareContext} not found.`);
         }
 
         const floors = await context.getChildren("hasNetworkTreeGroup");
         
         if (floors.length === 0) {
-            throw new Error(`No floors found in context ${process.env.HarwareContext}.`);
+            throw new Error(`No floors found in context ${process.env.HardwareContext}.`);
         }
         
         const positionsArrays = await Promise.all(
@@ -244,7 +244,9 @@ class SpinalMain {
 
     public async MainJob() {
         await this.OpenSpace_alarm();
-        await this.Room_alarm();
+        if (process.env.RoomContext!="" && process.env.RoomCategory !="") {
+         await this.Room_alarm();
+        }
     }
 
 }
