@@ -158,7 +158,7 @@ export class Utils {
     public async gtbReadValue(ParentNode : SpinalNode<any>, endpointValue: string): Promise<number[]> {
         if (endpointValue.length < 8) {
             console.error("position " + ParentNode.info.name.get() + ", La trame doit contenir au moins 4 octets (8 caractères hex).");
-            return [0, 0, 0]; // Return default value in case of error
+            return [0, 0]; // Return default value in case of error
         }
 
         // Récupérer les 2 derniers octets
@@ -178,12 +178,12 @@ export class Utils {
             .reverse()   // inversion pour que bitArray[0] = LSB
             .map(b => Number(b));
 
-        // Extraire les bits 6, 7, 8
+        // Extraire les bits 6, 7
         const bit6 = bitArray[6];
         const bit7 = bitArray[7];
-        const bit8 = bitArray[8];
+        //const bit8 = bitArray[8];
 
-        return [bit6, bit7, bit8];
+        return [bit6, bit7];
     }
 
 
@@ -288,7 +288,7 @@ export class Utils {
             try {
                 const bitArray = await this.gtbReadValue(ParentNode,GTBvalue);
                 console.log("bitArray ======================================================:", bitArray);
-                // If one of the bits 6, 7, or 8 is set to 1, update the control point
+                // If one of the bits 6, 7 is set to 1, update the control point
                 if (bitArray.reduce((a, b) => a + b, 0) > 0) {
                     // call update control point
                     return true;
